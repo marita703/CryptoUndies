@@ -1,5 +1,6 @@
 import { Avatar, Box, Flex, Heading, Link, Text } from "@chakra-ui/react";
 import { ConnectWallet, useAddress } from "@thirdweb-dev/react";
+import NavBarButtonsData from "../Lib/NavBarButtonsData";
 import NextLink from "next/link";
 
 export function Navbar() {
@@ -12,12 +13,13 @@ export function Navbar() {
           <Heading>CryptoUndies</Heading>
         </Link>
         <Flex direction={"row"}>
-          <Link as={NextLink} href="/buy" mx={2.5}>
-            <Text>Buy</Text>
-          </Link>
-          <Link as={NextLink} href="/sell" mx={2.5}>
-            <Text>Sell</Text>
-          </Link>
+          {NavBarButtonsData.map((button) => {
+            return (
+              <Link as={NextLink} href={button.href} mx={2.5} key={button.name}>
+                <Text>{button.name}</Text>
+              </Link>
+            );
+          })}
         </Flex>
         <Flex dir={"row"} alignItems={"center"}>
           <ConnectWallet />

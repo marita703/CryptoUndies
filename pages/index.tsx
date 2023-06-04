@@ -1,6 +1,13 @@
-import NextLink from 'next/link'
+import NextLink from "next/link";
 import type { NextPage } from "next";
-import { Button, Container, Flex, Heading, Image, Stack } from '@chakra-ui/react';
+import {
+  Button,
+  Container,
+  Flex,
+  Heading,
+  Image,
+  Stack,
+} from "@chakra-ui/react";
 
 const Home: NextPage = () => {
   return (
@@ -8,9 +15,9 @@ const Home: NextPage = () => {
       <Flex h={"80vh"} alignItems={"center"} justifyContent={"center"}>
         <Stack spacing={4} align={"center"}>
           <Heading>Marketplace</Heading>
-          <Button
-             as={NextLink} href='/buy'
-          >Shop NFTs</Button>
+          <Button as={NextLink} href="/upload">
+            Sell your used Undies!
+          </Button>
         </Stack>
       </Flex>
     </Container>

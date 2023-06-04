@@ -1,8 +1,7 @@
 const NavBarButtonsData = [
-  { name: "Market Place", href: "/" },
-  { name: "CreateNFT", href: "/create" },
-  { name: "Collections", href: "/collections" },
-  { name: "MyNFTPortal", href: "/portal" },
+  { name: "Upload your Undies", href: "/upload" },
+  { name: "Buy", href: "/buy" },
+  { name: "Sell", href: "/sell" },
 ];
 
 export default NavBarButtonsData;
