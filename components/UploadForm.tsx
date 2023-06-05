@@ -27,6 +27,7 @@ import { useForm } from "react-hook-form";
 import { useDropzone } from "react-dropzone";
 import { useRouter } from "next/router";
 import { NFTStorage, File } from "nft.storage";
+import dotenv from "dotenv";
 
 type MetadataFormData = {
   name: string;
@@ -39,7 +40,7 @@ type MetadataFormData = {
 
 function UploadForm() {
   // Here is the dotenvConfiguration
-  const dotenv = require("dotenv");
+
   dotenv.config();
 
   // Here we create the nft contract to interact with:
@@ -59,14 +60,25 @@ function UploadForm() {
   // this is the url for image and metadata in ipfs
   const [url, setUrl] = useState<string>("");
 
-  const { mutateAsync: upload } = useStorageUpload();
-  const onDrop = useCallback(
-    async (acceptepFiles: File[]) => {
-      const _uri = await upload({ data: acceptepFiles });
-      setUri(_uri);
-    },
-    [upload]
-  );
+  //   const { mutateAsync: upload } = useStorageUpload();
+  //   const onDrop = useCallback(
+  //     async (acceptepFiles: File[]) => {
+  //       const _uri = await upload({ data: acceptepFiles });
+  //       setUri(_uri);
+  //     },
+  //     [upload]
+  //   );
+
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
+  selectedFile && console.log("selected File: ", selectedFile);
+
+  const onDrop = useCallback((acceptedFiles: File[]) => {
+    if (acceptedFiles && acceptedFiles.length > 0) {
+      setSelectedFile(acceptedFiles[0]);
+      uploadImage(acceptedFiles[0]);
+    }
+  }, []);
 
   //This is to get the values from the form
   const { register, watch } = useForm<MetadataFormData>({
@@ -89,18 +101,25 @@ function UploadForm() {
     if (!imageData) return;
     console.log("Uploading Image...");
 
-    const apiKey: string = process.env.MY_API_KEY_NFT_STORAGE || "";
-    const nftStorage = new NFTStorage({ token: apiKey });
-
-    const { ipnft } = await nftStorage.store({
-      image: new File([imageData], "image.jpeg", { type: "image/jpeg" }),
-      name: watch("name"),
-      description: watch("material"),
+    const nftStorage = new NFTStorage({
+      token:
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJkaWQ6ZXRocjoweDM4MzgxODlCNTc4OEMxZmZlMTQxMjU1MDkwODc5MGY5ZDFlNzVEQzIiLCJpc3MiOiJuZnQtc3RvcmFnZSIsImlhdCI6MTY4NTkzODQxODE1NSwibmFtZSI6IkNyeXB0b1VuZGllcyJ9.cJDvmEi_yR1fxZxYbP9UbEDyw_iTDemrpJEYKIQ33sg",
     });
 
-    const _url = `https://ipfs.io.ipfs/${ipnft}/metadata.json`;
+    const { ipnft } = await nftStorage.store({
+      image: new File([imageData], "image.png", { type: "image/png" }),
+      name: "someStuff",
+      description: "some stuff",
+    });
+
+    console.log("stored");
+
+    const _url = `https://ipfs.io/ipfs/${ipnft}/metadata.json`;
+    console.log(_url);
     setUrl(_url);
   };
+
+  // selectedFile && uploadImage(selectedFile);
 
   return (
     <Flex justify="center">
@@ -182,12 +201,7 @@ function UploadForm() {
             </Box>
             <Box>
               {address ? (
-                <Web3Button
-                  contractAddress={NFT_COLLECTION_ADDRESS}
-                  action={() => createMetadata}
-                >
-                  Mint NFT
-                </Web3Button>
+                <button>Mint NFT</button>
               ) : (
                 <Text> Please conect your wallet!</Text>
               )}
