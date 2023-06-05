@@ -69,40 +69,31 @@ function UploadForm() {
 
   console.log("uri: ", uri);
   const gatewayUrl = "https://ipfs.io/ipfs/";
+  const httpUrl = gatewayUrl + uri[0]?.replace("ipfs://", "");
 
-  const fetchIPFSContent = async (uri: string): Promise<Response> => {
-    const httpUrl = gatewayUrl + uri?.replace("ipfs://", "");
-    return fetch(httpUrl);
-  };
+  const fetchIPFSContent = async (url: string): Promise<Blob> => {
+    const response = await fetch(url);
 
-  const fetchData = async () => {
-    try {
-      if (!uri[0]) {
-        return;
-      }
-      const response = await fetchIPFSContent(uri[0]);
-      if (response.ok) {
-        const data = await response.text();
-        console.log("data: ", data);
-      } else {
-        console.error("Failed to fetch IPFS content");
-      }
-    } catch (error) {
-      console.error(error);
+    if (!response.ok) {
+      throw new Error("Failed to fetch image");
     }
+    const blob = await response.blob();
+    return blob;
   };
+
+  fetchIPFSContent(httpUrl)
+    .then((blob) => {
+      console.log(blob);
+      const r = blob;
+      return r;
+    })
+    .catch((error) => {
+      console.error(error);
+    });
 
   //  This is to use the Dropzone hook. in order to conect it with the UseStorageUpload
 
   const { getRootProps, getInputProps } = useDropzone({ onDrop });
-
-  async function getExampleImage() {
-    const r = await fetchData();
-    if (!r.ok) {
-      throw new Error(`error fetching image: ${r.status}`);
-    }
-    return r.blob();
-  }
 
   async function storeExampleNFT() {
     const image = await getExampleImage();
