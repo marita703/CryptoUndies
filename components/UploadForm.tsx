@@ -54,10 +54,11 @@ function UploadForm() {
 
   const address = useAddress();
 
-  const router = useRouter();
-
   //   this is the part to upload the image to IPFS
   const [uri, setUri] = useState<string[]>([]);
+  // this is the url for image and metadata in ipfs
+  const [url, setUrl] = useState<string>("");
+
   const { mutateAsync: upload } = useStorageUpload();
   const onDrop = useCallback(
     async (acceptepFiles: File[]) => {
@@ -66,61 +67,6 @@ function UploadForm() {
     },
     [upload]
   );
-
-  console.log("uri: ", uri);
-  const gatewayUrl = "https://ipfs.io/ipfs/";
-  const httpUrl = gatewayUrl + uri[0]?.replace("ipfs://", "");
-
-  const fetchIPFSContent = async (url: string): Promise<Blob> => {
-    const response = await fetch(url);
-
-    if (!response.ok) {
-      throw new Error("Failed to fetch image");
-    }
-    const blob = await response.blob();
-    return blob;
-  };
-
-  fetchIPFSContent(httpUrl)
-    .then((blob) => {
-      console.log(blob);
-      const r = blob;
-      return r;
-    })
-    .catch((error) => {
-      console.error(error);
-    });
-
-  //  This is to use the Dropzone hook. in order to conect it with the UseStorageUpload
-
-  const { getRootProps, getInputProps } = useDropzone({ onDrop });
-
-  async function storeExampleNFT() {
-    const image = await getExampleImage();
-    const nft = {
-      image, // use image Blob as `image` field
-      name: "CrytpUndies ",
-      description: "The metaverse is here. Where is it all being stored?",
-      properties: {
-        type: "blog-post",
-        origins: {
-          http: "https://blog.nft.storage/posts/2021-11-30-hello-world-nft-storage/",
-          ipfs: "ipfs://bafybeieh4gpvatp32iqaacs6xqxqitla4drrkyyzq6dshqqsilkk3fqmti/blog/post/2021-11-30-hello-world-nft-storage/",
-        },
-        authors: [{ name: "David Choi" }],
-        content: {
-          "text/markdown":
-            "The last year has witnessed the explosion of NFTs onto the world’s mainstage. From fine art to collectibles to music and media, NFTs are quickly demonstrating just how quickly grassroots Web3 communities can grow, and perhaps how much closer we are to mass adoption than we may have previously thought. <... remaining content omitted ...>",
-        },
-      },
-    };
-    const apiKeyNftStorage: string = process.env.MY_API_KEY_NFT_STORAGE || "";
-    const client = new NFTStorage({ token: apiKeyNftStorage });
-    const metadata = await client.store(nft);
-
-    console.log("NFT data stored!");
-    console.log("Metadata URI: ", metadata.url);
-  }
 
   //This is to get the values from the form
   const { register, watch } = useForm<MetadataFormData>({
@@ -134,23 +80,27 @@ function UploadForm() {
     },
   });
 
-  function createMetadata() {
-    const metadata = {
+  //  This is to use the Dropzone hook. in order to conect it with the UseStorageUpload
+
+  const { getRootProps, getInputProps } = useDropzone({ onDrop });
+
+  //Here we upload the stuff to ipfs
+  const uploadImage = async (imageData: File) => {
+    if (!imageData) return;
+    console.log("Uploading Image...");
+
+    const apiKey: string = process.env.MY_API_KEY_NFT_STORAGE || "";
+    const nftStorage = new NFTStorage({ token: apiKey });
+
+    const { ipnft } = await nftStorage.store({
+      image: new File([imageData], "image.jpeg", { type: "image/jpeg" }),
       name: watch("name"),
-      typeOfUnderwear: watch("typeOfUnderwear"),
-      timeOn: watch("timeOn"),
-      timeOntype: watch("timeOntype"),
-      material: watch("material"),
-      image: uri[0],
-    };
-    const metadataJson = JSON.stringify(metadata);
+      description: watch("material"),
+    });
 
-    console.log(metadataJson);
-
-    return metadataJson;
-  }
-
-  // Here is the code for NFTSTORAGE
+    const _url = `https://ipfs.io.ipfs/${ipnft}/metadata.json`;
+    setUrl(_url);
+  };
 
   return (
     <Flex justify="center">
