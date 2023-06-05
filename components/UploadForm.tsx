@@ -1,4 +1,4 @@
-import React, { FormEvent, useState } from "react";
+import React, { FormEvent, useEffect, useState } from "react";
 import {
   Web3Button,
   useContract,
@@ -26,21 +26,26 @@ import { useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { useDropzone } from "react-dropzone";
 import { useRouter } from "next/router";
+import { NFTStorage, File } from "nft.storage";
 
 type MetadataFormData = {
   name: string;
   typeOfUnderwear: string;
-  timeOn: string;
+  timeOn: number;
   timeOntype: string;
   material: string;
   image: string;
 };
 
 function UploadForm() {
+  // Here is the dotenvConfiguration
+  const dotenv = require("dotenv");
+  dotenv.config();
+
   // Here we create the nft contract to interact with:
   const { contract: nftCollection } = useContract(
     NFT_COLLECTION_ADDRESS,
-    "CryptoUndies"
+    "nft-collection"
   );
   // Here we access to the mintNFT function from the contract.
   const { mutateAsync: mintNft, isLoading, error } = useMintNFT(nftCollection);
@@ -48,8 +53,6 @@ function UploadForm() {
   //Here we access to the wallet that is currently conected:
 
   const address = useAddress();
-
-  const addressString = address?.toString();
 
   const router = useRouter();
 
@@ -64,27 +67,99 @@ function UploadForm() {
     [upload]
   );
 
-  const image = uri[0];
-  typeof image === "string";
-  console.log(image);
-  const modifyImage = image?.replace("ipfs//", "https://ipfs.io/ipfs/");
-  console.log(modifyImage);
+  console.log("uri: ", uri);
+  const gatewayUrl = "https://ipfs.io/ipfs/";
+
+  const fetchIPFSContent = async (uri: string): Promise<Response> => {
+    const httpUrl = gatewayUrl + uri?.replace("ipfs://", "");
+    return fetch(httpUrl);
+  };
+
+  const fetchData = async () => {
+    try {
+      if (!uri[0]) {
+        return;
+      }
+      const response = await fetchIPFSContent(uri[0]);
+      if (response.ok) {
+        const data = await response.text();
+        console.log("data: ", data);
+      } else {
+        console.error("Failed to fetch IPFS content");
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  //  This is to use the Dropzone hook. in order to conect it with the UseStorageUpload
 
   const { getRootProps, getInputProps } = useDropzone({ onDrop });
 
+  async function getExampleImage() {
+    const r = await fetchData();
+    if (!r.ok) {
+      throw new Error(`error fetching image: ${r.status}`);
+    }
+    return r.blob();
+  }
+
+  async function storeExampleNFT() {
+    const image = await getExampleImage();
+    const nft = {
+      image, // use image Blob as `image` field
+      name: "CrytpUndies ",
+      description: "The metaverse is here. Where is it all being stored?",
+      properties: {
+        type: "blog-post",
+        origins: {
+          http: "https://blog.nft.storage/posts/2021-11-30-hello-world-nft-storage/",
+          ipfs: "ipfs://bafybeieh4gpvatp32iqaacs6xqxqitla4drrkyyzq6dshqqsilkk3fqmti/blog/post/2021-11-30-hello-world-nft-storage/",
+        },
+        authors: [{ name: "David Choi" }],
+        content: {
+          "text/markdown":
+            "The last year has witnessed the explosion of NFTs onto the world’s mainstage. From fine art to collectibles to music and media, NFTs are quickly demonstrating just how quickly grassroots Web3 communities can grow, and perhaps how much closer we are to mass adoption than we may have previously thought. <... remaining content omitted ...>",
+        },
+      },
+    };
+    const apiKeyNftStorage: string = process.env.MY_API_KEY_NFT_STORAGE || "";
+    const client = new NFTStorage({ token: apiKeyNftStorage });
+    const metadata = await client.store(nft);
+
+    console.log("NFT data stored!");
+    console.log("Metadata URI: ", metadata.url);
+  }
+
+  //This is to get the values from the form
   const { register, watch } = useForm<MetadataFormData>({
     defaultValues: {
       name: "",
       typeOfUnderwear: "",
-      timeOn: "",
+      timeOn: 0,
       timeOntype: "",
       material: "",
       image: uri[0],
     },
   });
 
-  const typeOfUnderwear = watch("typeOfUnderwear");
-  console.log(typeOfUnderwear);
+  function createMetadata() {
+    const metadata = {
+      name: watch("name"),
+      typeOfUnderwear: watch("typeOfUnderwear"),
+      timeOn: watch("timeOn"),
+      timeOntype: watch("timeOntype"),
+      material: watch("material"),
+      image: uri[0],
+    };
+    const metadataJson = JSON.stringify(metadata);
+
+    console.log(metadataJson);
+
+    return metadataJson;
+  }
+
+  // Here is the code for NFTSTORAGE
 
   return (
     <Flex justify="center">
@@ -168,14 +243,7 @@ function UploadForm() {
               {address ? (
                 <Web3Button
                   contractAddress={NFT_COLLECTION_ADDRESS}
-                  action={(nftCollection) =>
-                    nftCollection.erc721.mint({
-                      name: watch("name"),
-                      description: watch("typeOfUnderwear"),
-                      image:
-                        "https://ipfs.io/ipfs/QmbkSxnVXRd3AJi1MqLSQFvKbkBBrRsGcu2jpvjVWbGMjB/logo.png",
-                    })
-                  }
+                  action={() => createMetadata}
                 >
                   Mint NFT
                 </Web3Button>
